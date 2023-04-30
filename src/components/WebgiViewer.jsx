@@ -4,6 +4,7 @@ import React, {
   useCallback,
   forwardRef,
   useEffect,
+  useImperativeHandle,
 } from "react";
 import {
   ViewerApp,
@@ -25,8 +26,34 @@ import { scrollAnimation } from "../lib/scroll-animation";
 
 gsap.registerPlugin(ScrollTrigger);
 
-export const WebgiViewer = () => {
+export const WebgiViewer = forwardRef((props, ref) => {
   const canvasRef = useRef(null);
+  const [viewerRef, setViewerRef] = useState(null);
+  const [targetRef, setTargetRef] = useState(null);
+  const [cameraRef, setCameraRef] = useState(null);
+  const [positionRef, setPositionRef] = useState(null);
+
+  useImperativeHandle(ref, () => ({
+    triggerPreview() {
+      gsap.to(positionRef, {
+        x: 13.04,
+        y: -2,
+        z: 2.29,
+        duration: 2,
+        onUpdate: () => {
+          viewerRef.setDirty();
+          cameraRef.positionTargetUpdated(true);
+        },
+      });
+
+      gsap.to(targetRef, {
+        x: 0.11,
+        y: 0.0,
+        z: 0.0,
+        duration: 2,
+      });
+    },
+  }));
 
   const memoizedScrollAnimation = useCallback((position, target, onUpdate) => {
     if (position && target && onUpdate) {
@@ -40,12 +67,18 @@ export const WebgiViewer = () => {
       canvas: canvasRef.current,
     });
 
+    setViewerRef(viewer);
+
     // Add some plugins
     const manager = await viewer.addPlugin(AssetManagerPlugin);
 
     const camera = viewer.scene.activeCamera;
     const position = camera.position;
     const target = camera.target;
+
+    setCameraRef(camera);
+    setPositionRef(position);
+    setTargetRef(target);
 
     // Add plugins individually.
     await viewer.addPlugin(GBufferPlugin);
@@ -97,4 +130,4 @@ export const WebgiViewer = () => {
       <canvas id="webgi-canvas" ref={canvasRef} />
     </div>
   );
-};
+});
