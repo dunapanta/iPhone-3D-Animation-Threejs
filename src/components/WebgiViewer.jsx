@@ -33,9 +33,11 @@ export const WebgiViewer = forwardRef((props, ref) => {
   const [cameraRef, setCameraRef] = useState(null);
   const [positionRef, setPositionRef] = useState(null);
   const canvasContainerRef = useRef(null);
+  const [previewMode, setPreviewMode] = useState(false);
 
   useImperativeHandle(ref, () => ({
     triggerPreview() {
+      setPreviewMode(true);
       canvasContainerRef.current.style.pointerEvents = "all";
       props.contentRef.current.style.opacity = "0";
 
@@ -133,9 +135,51 @@ export const WebgiViewer = forwardRef((props, ref) => {
     setupViewer();
   }, []);
 
+  const handleExit = useCallback(() => {
+    canvasContainerRef.current.style.pointerEvents = "none";
+    props.contentRef.current.style.opacity = "1";
+    viewerRef.scene.activeCamera.setCameraOptions({ controlsEnabled: false });
+    setPreviewMode(false);
+
+    gsap
+      .to(positionRef, {
+        x: 1.56,
+        y: 5.0,
+        z: 0.01,
+        scrollTrigger: {
+          trigger: ".display-section",
+          start: "top bottom",
+          end: "top top",
+          scrub: 2,
+          immediateRender: false,
+        },
+        onUpdate: () => {
+          viewerRef.setDirty();
+          cameraRef.positionTargetUpdated(true);
+        },
+      });
+      gsap.to(targetRef, {
+        x: -0.55,
+        y: 0.32,
+        z: 0.0,
+        scrollTrigger: {
+          trigger: ".display-section",
+          start: "top bottom",
+          end: "top top",
+          scrub: 2,
+          immediateRender: false,
+        },
+      });
+  }, [canvasContainerRef, viewerRef, positionRef, targetRef, cameraRef]);
+
   return (
     <div ref={canvasContainerRef} id="webgi-canvas-container">
       <canvas id="webgi-canvas" ref={canvasRef} />
+      {previewMode && (
+        <button className="button" onClick={handleExit}>
+          Exit
+        </button>
+      )}
     </div>
   );
 });
